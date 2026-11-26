@@ -1,159 +1,356 @@
-# EchoLens — Customer Feedback Intelligence
+# EchoLens
 
-EchoLens turns unstructured customer feedback (app reviews, support tickets, NPS surveys) into **structured, evidence-backed product insight**:
-aspect-level sentiment, intent and urgency for every item, a discovered two-level theme taxonomy, emerging-issue alerts, a knowledge graph, and an AI analyst whose every claim cites the feedback it is based on — and is checked against it.
+**Customer feedback intelligence with traceable, evidence-backed AI insights.**
 
-> Built as a portfolio project for the Enterpret ML internship. Every model has a baseline and a regression threshold; see [docs/EVALUATION.md](docs/EVALUATION.md).
+[![Backend checks](https://github.com/simran-kalkeri/echolens/actions/workflows/backend-checks.yml/badge.svg)](https://github.com/simran-kalkeri/echolens/actions/workflows/backend-checks.yml)
+[![Pages deployment](https://github.com/simran-kalkeri/echolens/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/simran-kalkeri/echolens/actions/workflows/deploy-pages.yml)
+[![Frontend version](https://img.shields.io/badge/frontend-v0.1.0-blue)](web/package.json)
+[![License](https://img.shields.io/badge/license-not%20specified-lightgrey)](#license)
 
-## Live demo
+EchoLens turns app reviews, support conversations, and survey responses into actionable product insights. It helps teams find recurring problems, understand sentiment, detect emerging issues, and ask questions whose answers link back to customer feedback.
 
-[Open EchoLens on GitHub Pages](https://simran-kalkeri.github.io/echolens/).
+Built as a portfolio project for the Enterpret ML internship, it combines a reproducible ML pipeline, an interactive dashboard, and a live AI analyst. The deployed dataset contains **207,552 processed feedback records across six workspaces**. Source data is historical; survey examples are synthetic and labeled accordingly.
 
-GitHub Pages hosts the frontend. Set the repository variable `NEXT_PUBLIC_API_URL` to the deployed API URL to use the processed dataset and live Groq analyst; leaving it unset enables the built-in sample data and simulated analyst.
+## Live Links
 
-Changes to `web/` on `main` automatically rebuild and publish through `.github/workflows/deploy-pages.yml`. To build the Pages export locally, run `GITHUB_PAGES=true npm run build` from `web/` with `NEXT_PUBLIC_API_URL` unset; the site is written to `web/out/`.
+| Resource | Link |
+| --- | --- |
+| Frontend | [EchoLens dashboard](https://simran-kalkeri.github.io/echolens/) |
+| Backend | [API readiness and dataset status](https://echolens-api-0ok3.onrender.com/api/ready) |
+| API documentation | [Swagger UI](https://echolens-api-0ok3.onrender.com/docs) |
+| API schema | [OpenAPI JSON](https://echolens-api-0ok3.onrender.com/openapi.json) |
 
-## Results at a glance
+**Backend base URL:** `https://echolens-api-0ok3.onrender.com`
 
-**Scale:** 2.81M raw tweets + 61.6k reviews + 225 surveys → **287,854** feedback items → **208,593** after cleaning, PII redaction and dedup → **291 themes** across 6 workspaces, **164 alerts**. The student model enriched the whole corpus at **521 items/s on a Kaggle T4**, and only **1.7 %** of items ever needed an LLM call.
+The frontend runs on GitHub Pages and connects to the live FastAPI service on Render's **Free** plan. The backend may take about a minute to wake after inactivity. The hosted profile uses **BM25 keyword search** to fit the 512 MB memory limit; the full pipeline also supports dense, hybrid, and cross-encoder-reranked retrieval.
 
-| Model | Metric | EchoLens | Baseline |
-|---|---|---|---|
-| Sentiment (student) | macro-F1 | **0.817** | 0.696 TF-IDF+LR |
-| Intent (6 classes) | macro-F1 | **0.624** | 0.582 |
-| Urgency (4 classes) | macro-F1 | **0.497** | 0.439 |
-| Aspect-sentiment (14 aspects × 3) | joint F1 | **0.558** | 0.471 |
-| Same architecture on SemEval-2014 (human labels) | category F1 | **0.849** | — |
-| Retrieval, hybrid + cross-encoder | Recall@10 / MRR | **0.493 / 0.335** | 0.467 / 0.326 dense only |
-| Spike detector (simulated incidents) | recall / false alerts per theme-day | **0.667 / 0.1 %** | 0.633 / 0.1 % (2×-mean rule with look-ahead) |
-| LLM-written insights (96 artifacts) | share of claims supported by cited feedback | **0.686** | — |
+## Table of Contents
 
-### It found real incidents, unsupervised
+- [Features](#features)
+- [Demo and Screenshots](#demo-and-screenshots)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Installation and Setup](#installation-and-setup)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Guardrails and Usage Limits](#guardrails-and-usage-limits)
+- [Testing](#testing)
+- [Evaluation and Limitations](#evaluation-and-limitations)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [Roadmap](#roadmap)
+- [License](#license)
+- [Contact and Author](#contact-and-author)
 
-| Workspace | Theme the pipeline discovered and named | Peak | What actually happened |
-|---|---|---|---|
-| Spotify | *Login Failures*, *Unexpected Log-Outs* | 8 Mar 2022 (296/day vs 0.5 baseline) | Spotify's global outage |
-| Spotify | *Controversial Content and Ad Concerns* | 27 Jan 2022 | Joe Rogan / Neil Young controversy |
-| Apple | *Autocorrect Changing Letter "I" to Symbols* | 2–3 Nov 2017 | iOS 11.1 "A [?]" autocorrect bug |
-| Apple | *iPhone Pre-Order Confirmation Problems* | 27 Oct 2017 | iPhone X pre-orders opened |
-| Apple | *Random Restarts and Shutdowns* | 2 Dec 2017 | iOS 11.1.2 date-related restart bug |
+## Features
 
-### What did not go as hoped (reported as measured)
+- **Feedback enrichment:** predict sentiment, intent, urgency, and aspect-level sentiment using a distilled multi-task student model.
+- **Theme discovery:** organize feedback into fixed aspect categories and discovered, LLM-named themes.
+- **Emerging-issue detection:** identify spikes and growing themes against trailing historical baselines.
+- **Live AI analyst:** retrieve evidence, inspect metrics, stream cited answers, and score claim support.
+- **Feedback exploration:** search and filter by workspace, theme, source, sentiment, intent, and urgency.
+- **Interactive visualizations:** explore a knowledge graph, a 3D embedding galaxy, sentiment trends, and theme flows.
+- **Reproducible evaluation:** compare models with baselines and enforce recorded regression thresholds.
 
-- **The distilled student is cheaper, not better, than a zero-shot LLM.** On the same 240-item subset, zero-shot `gpt-oss-20b`/`qwen3.8-27b` scores 0.72 intent / 0.53 urgency macro-F1 against the student's 0.58 / 0.49. Sentiment is roughly tied (0.83 vs 0.82). The student wins on cost and latency (an LLM call for 1.7 % of the corpus, 521 items/s), not on quality. More and cleaner teacher labels are the obvious next step.
-- **Groundedness is 0.686, below the 0.80 target I set beforehand.** Most unsupported claims are summarising sentences with no citation, or numbers the judge could not match to the stats. The live-analyst question set (9 questions) was not completed because all three Groq free-tier models hit their daily token caps. A single spot check scored 0.80.
-- **Silhouette favours KMeans** (0.43 vs HDBSCAN's 0.28 at the same k), which is expected for a metric that rewards convex clusters. HDBSCAN was kept for density-based noise handling (6.8 % noise after reassignment) and an NPMI coherence of 0.11.
-- **Spike detection only catches large incidents.** Recall is 10 % for 1.5× incidents, 83 % at 2× and 100 % at 3×+.
+Nine dashboard views cover Overview, Themes, Emerging Issues, AI Analyst, Feedback Explorer, Knowledge Graph, Embedding Galaxy, Pipeline, and Evaluation. Workspaces include Spotify, Apple, Amazon, Uber, Delta Air Lines, and Xbox.
 
-Pre-registered targets that were missed are listed above. `eval/thresholds.json` holds **regression floors** pinned at this run, not quality claims. Full report: [docs/EVALUATION.md](docs/EVALUATION.md).
+## Demo and Screenshots
 
-## Architecture
+[Launch the live demo](https://simran-kalkeri.github.io/echolens/). Start with Spotify, open a theme to inspect its evidence, then ask the analyst a question such as “Why are users complaining about shuffle?”
 
-High-level, low-level and workflow diagrams (editable Excalidraw scenes with PNG/SVG exports) are in [architectures/](architectures/README.md).
+> **Screenshot placeholder:** Add overview, theme explorer, and live analyst screenshots here. Store approved images under `docs/screenshots/` before embedding them.
 
-![High-level architecture](architectures/exports/01-high-level-architecture.png)
+## Tech Stack
 
+| Area | Technologies |
+| --- | --- |
+| Frontend | Next.js 15, React 19, TypeScript, Tailwind CSS 4, Radix UI, TanStack Query, Zustand |
+| Visualization | ECharts, Sigma.js, React Three Fiber, React Flow, GSAP |
+| Backend | Python 3.11, FastAPI, Uvicorn, Pydantic, HTTPX |
+| Database and storage | DuckDB over Parquet, precomputed JSON artifacts, NumPy embedding shards |
+| ML and analytics | PySpark, ModernBERT, bge-small embeddings, UMAP, HDBSCAN, BM25, cross-encoder reranking, NetworkX |
+| AI provider | Groq with GPT-OSS models, tool calling, and claim verification |
+| Tools and DevOps | Docker, Docker Compose, GitHub Actions, GitHub Pages, Render Blueprints, Kaggle GPU jobs |
+
+### Architecture
+
+The offline pipeline ingests and cleans feedback, trains and applies models, discovers themes, and produces serving artifacts. FastAPI queries those artifacts; the dashboard and analyst consume its API.
+
+![EchoLens high-level architecture](architectures/exports/01-high-level-architecture.png)
+
+See [architecture diagrams](architectures/README.md) for editable Excalidraw scenes and detailed workflows.
+
+## Project Structure
+
+```text
+echolens/
+├── web/                         # Next.js dashboard and API client
+├── api/                         # FastAPI routes, DuckDB access, request limits
+├── analyst/                     # Groq client, tool loop, citation verification
+├── retrieval/                   # BM25, dense, hybrid, and reranked search
+├── pipeline/                    # Ingestion, Spark jobs, serving-artifact generation
+├── ml/                          # Teacher labeling, student training, theme discovery
+├── eval/                        # Evaluation scripts and regression thresholds
+├── data/                        # Prebuilt lake tables, indexes, serving JSON, labels
+├── tests/                       # API, analyst, guardrail, and regression tests
+├── architectures/               # Architecture sources and exported diagrams
+├── docs/                        # API contract and evaluation report
+├── infra/                       # API, frontend, and Spark Dockerfiles
+├── .github/workflows/            # Backend checks and Pages deployment
+├── requirements-api-base.txt    # API and BM25 dependencies
+├── requirements-api.txt         # Base API plus embedding/reranking dependencies
+├── requirements-pipeline.txt    # Pipeline and evaluation dependencies
+├── docker-compose.yml           # Local serving stack
+└── render.yaml                  # Free-plan backend deployment configuration
 ```
- Sources ─► Spark: Bronze (unify + validate) ─► Spark: Silver (clean, PII redaction, exact + MinHash-LSH dedup)
-                                                    │
-                                     Groq LLM teacher labels a 3.6k stratified sample (gpt-oss-120b test set + 120b/20b train)
-                                                    │
-                          Kaggle GPU: distil into multi-task ModernBERT student ─► predict all 190k+ items
-                                      bge-small embeddings ─► UMAP + HDBSCAN themes (per workspace)
-                                                    │
-                     LLM theme naming (c-TF-IDF + representative docs) ─► aspect → theme taxonomy
-                                                    │
-        Spark: Gold — daily aggregates · Poisson z-score anomaly detection · emerging themes · graph edges
-                                                    │
-     NetworkX (Louvain, PageRank) · hybrid retrieval (BM25 + dense, RRF, cross-encoder) · cited LLM insights
-                                                    │
-                        FastAPI over DuckDB ─► Next.js dashboard (9 views, incl. live pipeline DAG)
-```
 
-| Layer | Tech | Why |
-|---|---|---|
-| Batch processing | **Apache Spark 4** (PySpark, Docker), Parquet medallion lake | Join 2.8M tweets into conversations, LSH dedup, window-function analytics at scale |
-| Labelling | **Groq** `gpt-oss-120b` (test set + train) and `gpt-oss-20b` (train) | LLM-as-teacher: high-quality labels on a small sample |
-| Student model | **ModernBERT-base**, multi-task heads (sentiment, intent, urgency, 14×4 aspect-sentiment), trained on **Kaggle T4 GPU** | Runs over the whole corpus at a fraction of the LLM cost |
-| Themes | bge-small-en-v1.5 → UMAP → HDBSCAN, LLM-named | Data-driven taxonomy like Enterpret's adaptive taxonomy |
-| Trends | Poisson z-score vs 14-day trailing baseline (Spark windows) + emerging-theme detector | Interpretable, evaluated with injected incidents |
-| Retrieval | BM25 + dense, reciprocal-rank fusion, ms-marco cross-encoder rerank | Measured against dense-only and BM25-only |
-| AI analyst | Groq tool calling (5 tools), `[#id]` citations, LLM-judge claim verification; automatic model fallback when a free-tier daily cap is hit | Grounded, auditable answers |
-| Serving | FastAPI + DuckDB + numpy vector index | No database server; deployable anywhere |
-| Frontend | Next.js 15, Tailwind v4, shadcn/Radix, ECharts, Sigma.js, React Three Fiber, React Flow, GSAP | Knowledge graph, 3D embedding galaxy, pipeline DAG |
+Prebuilt gold/theme tables, search shards, serving JSON, teacher labels, run logs, and the LLM response cache are included. Raw datasets, bronze/silver tables, student checkpoints, and full Kaggle outputs are excluded and rebuilt through the pipeline.
 
-## Data
+## Installation and Setup
 
-| Channel | Source | Items |
-|---|---|---|
-| Reviews | [Spotify Play Store reviews 2022](https://www.kaggle.com/datasets/mfaaris/spotify-app-reviews-2022) | 61k |
-| Support tickets | [Customer Support on Twitter](https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter): 2.8M tweets → conversation starters answered by AppleSupport, AmazonHelp, Uber_Support, Delta, XboxSupport | 226k |
-| Surveys | **Synthetic** NPS verbatims generated with `qwen3.8-27b` (no public survey data exists for the same product) — flagged as `source=survey`, ids `sv_*` | 225 |
-| Benchmark | [SemEval-2014 Task 4](https://www.kaggle.com/datasets/charitarth/semeval-2014-task-4-aspectbasedsentimentanalysis) restaurants (human labels) | 3k |
+### Prerequisites
 
-Each brand is a **workspace** (like a customer tenant in Enterpret).
+- Python **3.11** and Node.js **22** with npm.
+- A Groq API key to enable the live analyst; browsing the processed dataset does not require one.
+- Docker for the optional container setup and Spark jobs.
+- Kaggle credentials and GPU access only if rebuilding the ML pipeline.
 
-## Dashboard
+Shell examples below use Bash. On Windows, Git Bash can run the shell examples; PowerShell users can use the activation command noted below.
 
-| View | What it shows |
-|---|---|
-| Overview | KPIs, sentiment trend, theme river, aspect sentiment, calendar heatmap, movers, cited insight cards |
-| Pipeline | Live DAG of the run: engine, rows in → out, duration, data-quality checks per stage |
-| Knowledge graph | Themes ↔ aspects ↔ intents ↔ channels, Louvain communities, PageRank sizing (Sigma.js / WebGL) |
-| Galaxy | 3D UMAP of feedback embeddings coloured by theme or sentiment (React Three Fiber) |
-| Themes | Aspect → theme taxonomy (treemap/sunburst), cited theme summaries, evidence |
-| Alerts | Spikes vs expected band, LLM explanation with citations |
-| Analyst | Streaming tool-using agent; claim-level support check and groundedness score |
-| Explorer | Hybrid semantic search + filters over every item |
-| Evaluation | All metrics vs baselines and thresholds |
-
-## Backend hosting
-
-`render.yaml` deploys a Docker web service on Render's **free** plan. Set `GROQ_API_KEY` as a Render secret; it belongs only on the server and in the ignored local `.env`, never in Git or the frontend build. After the service passes `/api/ready`, set the GitHub repository variable `NEXT_PUBLIC_API_URL` to its HTTPS URL and run the Pages workflow.
-
-The free profile serves the complete processed dataset through DuckDB views, keeps a single workspace search index, and uses **BM25 keyword retrieval**. It omits local embedding and reranking models to fit 512 MB. The full hybrid/reranked path remains available in the default Docker image and local setup. Render's free service sleeps after inactivity, so the first request can take longer.
-
-The public analyst allows 3 questions per client per 15 minutes, 20 questions across all clients per day, and one active question at a time. Questions are limited to 800 characters and 4 KB request bodies; each answer has a 90-second request budget and at most 6 upstream LLM attempts, including retries, fallbacks, and claim verification. Other websites are excluded by CORS. These quotas live in the running instance and reset on redeployment; Groq account limits remain the final account-wide spending boundary.
-
-`Backend checks` runs the real-data API tests, guardrail tests, and a Docker smoke test capped at 512 MB before the hosted service is connected to the frontend.
-
-## Run it
-
-Requirements: Docker, Python 3.11, Node 22, a Groq API key, a Kaggle account (GPU).
+### 1. Clone the repository
 
 ```bash
-uv venv --python 3.11 .venv && uv pip install --python .venv -r requirements-pipeline.txt
+git clone https://github.com/simran-kalkeri/echolens.git
+cd echolens
+```
+
+### 2. Set up the backend
+
+```bash
+python3.11 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements-api-base.txt pytest
+cp .env.example .env
+```
+
+On Windows, create the environment with `py -3.11 -m venv .venv` and activate it with `.\.venv\Scripts\Activate.ps1`.
+
+Configure the root `.env` for the lightweight, hosted search profile:
+
+```dotenv
+GROQ_API_KEY=
+RETRIEVAL_METHOD=bm25
+ECHOLENS_LOW_MEMORY=true
+DUCKDB_MEMORY_LIMIT=96MB
+DUCKDB_THREADS=1
+```
+
+Set `GROQ_API_KEY` to your own key for live AI requests. Keep `.env` out of Git. Start the API from the repository root:
+
+```bash
+uvicorn api.main:app --host 0.0.0.0 --port 8000
+```
+
+Local API documentation: [http://localhost:8000/docs](http://localhost:8000/docs).
+
+### 3. Set up the frontend
+
+In a second terminal, from the repository root:
+
+```bash
+cd web
+npm ci
+cp .env.example .env.local
+```
+
+Set `web/.env.local` to:
+
+```dotenv
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000). Leaving `NEXT_PUBLIC_API_URL` unset enables built-in sample data and a simulated analyst. Never place a Groq key in a `NEXT_PUBLIC_*` variable.
+
+### Optional setups
+
+- **Docker:** after configuring the root `.env`, run `docker compose up --build` from the repository root. The dashboard uses port 3000 and the API uses port 8000. The default API image preloads embedding/reranking models during its build.
+- **Full retrieval:** install `requirements-api.txt` and set `RETRIEVAL_METHOD=hybrid_rerank`. Model assets download on first use outside the prewarmed Docker image.
+- **Pipeline rebuild:** install `requirements-pipeline.txt`, configure Kaggle access, then run:
+
+```bash
 docker build -t echolens-spark -f infra/spark.Dockerfile infra
-cp .env.example .env            # add GROQ_API_KEY
-python -m pipeline.cli all      # ingest → label → kaggle → themes → gold → serving → eval
-uvicorn api.main:app --port 8000
-cd web && npm install && NEXT_PUBLIC_API_URL=http://localhost:8000 npm run dev
+python -m pipeline.cli all
 ```
 
-Or serve the prebuilt data: `docker compose up --build` → http://localhost:3000 (API docs at http://localhost:8000/docs).
+The bundled artifacts support local serving without rerunning ingestion or training.
 
-**What the repository ships with:** the gold lake tables (`data/lake/gold`, `data/lake/themes`), per-workspace embedding shards for search (`data/index`, built by `python -m retrieval.build_index`), serving JSON, run logs, teacher labels, and the LLM response cache. With these, the API, dashboard and analyst work from a fresh clone without rerunning the pipeline. Raw datasets, bronze/silver tables, the 600 MB student checkpoint and the full Kaggle outputs are not included; `python -m pipeline.cli all` rebuilds them.
-Without an API URL the frontend runs on built-in mock data.
+## Usage
 
-Tests: `pytest` (unit tests, API contract tests, and the metric regression gate against `eval/thresholds.json`).
+1. Select a workspace and inspect its sentiment, themes, and alerts.
+2. Open a theme or citation to inspect supporting feedback.
+3. Use the explorer to search feedback and apply filters.
+4. Ask the live analyst a product question and review its citations and claim-support score.
 
-## Repository
+For API access, substitute the local or deployed base URL:
 
-```
-pipeline/   spark_jobs/ (ingest: bronze+silver, gold, trends), build_serving.py, cli.py, common/runlog.py
-ml/         labeling/ (Groq teacher, synthetic surveys), kaggle/ (GPU job + orchestration), themes/ (naming, NPMI)
-retrieval/  hybrid search          analyst/  LLM client, tool-using agent, claim verifier
-api/        FastAPI + DuckDB       web/      Next.js dashboard
-eval/       evaluation suite, synthetic-incident injection, thresholds
-docs/       api-contract.ts (shared types), EVALUATION.md
-architectures/  Excalidraw diagrams (high-level, low-level, workflow) + PNG/SVG exports
+```bash
+API_BASE=https://echolens-api-0ok3.onrender.com
+curl --fail "$API_BASE/api/health"
+curl --fail "$API_BASE/api/feedback?ws=spotify&q=shuffle&page_size=5"
 ```
 
-## Design decisions & trade-offs
+## API Documentation
 
-- **Distillation instead of calling an LLM per item.** The LLM labels ~3.6k items; a ModernBERT-base student labels the rest. The test set is labelled only by the strongest model (gpt-oss-120b), and the student is compared with a TF-IDF baseline and a zero-shot LLM. The zero-shot baseline is never allowed to fall back to the teacher model.
-- **Two-level taxonomy.** Fixed L1 aspects (supervised, stable across workspaces for comparison) plus discovered L2 themes (unsupervised, specific to each product).
-- **Poisson z-scores over ML anomaly detectors.** Daily counts per theme are small and sparse; a count model with a trailing baseline is explainable to a PM and is tested with injected incidents with known start dates.
-- **Grounding is measured, not assumed.** Citations to ids the tools never returned are removed, and every remaining claim is checked by an LLM judge against the cited text.
-- **DuckDB + Parquet for serving** instead of Postgres/pgvector: ~200k rows fit in memory, so serving needs no database server.
-- **Limitations.** Teacher labels are not human gold, so student metrics measure agreement with the teacher; the SemEval benchmark gives a human-labelled check. Surveys are synthetic. Ticket workspaces cover Oct–Dec 2017; reviews cover Jan–Jul 2022. Groq free-tier daily caps (200k tokens/model/day) shaped several choices: 2 teachers in parallel, cached LLM responses, a reduced zero-shot subset.
+[Swagger UI](https://echolens-api-0ok3.onrender.com/docs) documents request schemas and responses. The [TypeScript API contract](docs/api-contract.ts) defines shared frontend types.
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/health` | Process health |
+| GET | `/api/ready` | Dataset readiness, record count, and analyst configuration status |
+| GET | `/api/workspaces` | Available workspaces and record counts |
+| GET | `/api/overview?ws=spotify` | KPIs and time-series summaries |
+| GET | `/api/themes?ws=spotify` | Theme taxonomy |
+| GET | `/api/themes/{theme_id}?ws=spotify` | Theme details and supporting feedback |
+| GET | `/api/alerts?ws=spotify` | Detected emerging issues |
+| GET | `/api/feedback?ws=spotify&q=shuffle` | Search, filters, and pagination |
+| GET | `/api/graph?ws=spotify` | Knowledge graph |
+| GET | `/api/galaxy?ws=spotify` | Precomputed embedding visualization |
+| GET | `/api/insights?ws=spotify` | Precomputed cited insights |
+| GET | `/api/pipeline`, `/api/eval` | Recorded pipeline and evaluation results |
+| POST | `/api/analyst/ask` | Live analyst response as Server-Sent Events |
+
+### Health response
+
+```http
+GET /api/health
+```
+
+```json
+{"ok": true}
+```
+
+### Analyst request and stream
+
+```bash
+curl --no-buffer "$API_BASE/api/analyst/ask" \
+  -H "Content-Type: application/json" \
+  -d '{"ws":"spotify","question":"Why are users complaining about shuffle?"}'
+```
+
+The POST response is `text/event-stream`, with events such as:
+
+```text
+data: {"type":"status","text":"Planning analysis"}
+
+data: {"type":"token","text":"Users "}
+```
+
+The final event includes `answer`, `citations`, `claims`, and `groundedness`. A streamed `error` event indicates an incomplete answer. Validation, quota, and configuration errors can instead return an HTTP error before streaming starts.
+
+## Guardrails and Usage Limits
+
+These are the defaults for the deployed public analyst:
+
+| Control | Behavior |
+| --- | --- |
+| Server-side credentials | The Groq key stays in Render environment secrets and the ignored local `.env`; it is excluded from Git, Docker build context, and frontend configuration. |
+| Per-client quota | **3 admitted questions per rolling 15 minutes**, based on client IP identity. |
+| Global quota | **20 admitted questions per rolling 24 hours**, across all clients in the running instance. |
+| Concurrency | **One active analyst request** at a time. Quota and busy rejections return HTTP `429` with `Retry-After`. |
+| Input validation | Questions must contain text and be at most **800 characters**; analyst request bodies are capped at **4 KiB**. Workspace IDs are validated. |
+| Upstream budget | A **90-second budget**, checked before upstream calls, and at most **6 LLM attempts** shared across generation, retries, fallbacks, and claim verification. |
+| Bounded tool use | Live analysis uses at most **3 tool rounds**, with at most **2 tool calls per round**, over scoped, read-only feedback tools. |
+| Browser-origin policy | The hosted API allows the GitHub Pages frontend origin: `https://simran-kalkeri.github.io`. |
+| Evidence and error handling | Unknown citation IDs are removed, claims receive support checks, and public stream errors omit internal exception details. |
+
+Configure quotas with `ANALYST_PER_IP_LIMIT`, `ANALYST_DAILY_LIMIT`, `ANALYST_TIMEOUT_SECONDS`, and `ANALYST_MAX_CALLS`. Set browser origins through `ALLOWED_ORIGINS`.
+
+**Scope:** counters are in memory and reset on process restart or redeployment. The API is public, and direct HTTP clients can reach it independently of browser CORS rules. Provider account limits remain the account-wide spending boundary. Claim verification measures support and does not guarantee factual accuracy.
+
+## Testing
+
+With the backend environment configured as above:
+
+```bash
+python -m pytest -q tests
+```
+
+The suite covers real-data API contracts, citation utilities, regression metrics, request validation, quotas, concurrency, CORS, and the LLM request budget.
+
+Frontend checks, from `web/`:
+
+```bash
+npm run lint
+npm run build
+```
+
+[Backend checks](https://github.com/simran-kalkeri/echolens/actions/workflows/backend-checks.yml) also builds the lightweight Docker image and exercises real-data endpoints and search under a **512 MB memory cap**. The deployment validation passed **15 tests** and used approximately **183 MiB** after the container smoke test.
+
+## Evaluation and Limitations
+
+Selected results from the recorded experiment, detailed in [the evaluation report](docs/EVALUATION.md):
+
+| Metric | Result | Baseline |
+| --- | --- | --- |
+| Student sentiment macro-F1 | 0.817 | 0.696, TF-IDF + logistic regression |
+| Student intent macro-F1 | 0.624 | 0.582 |
+| Student urgency macro-F1 | 0.497 | 0.439 |
+| Aspect-sentiment joint F1 | 0.558 | 0.471 |
+| Hybrid + reranker Recall@10 | 0.493 | 0.467, dense only |
+| Insight groundedness | 0.686 | Original target: 0.80 |
+
+- Classification results primarily measure agreement with teacher labels; the report includes a separate human-labeled SemEval benchmark.
+- Retrieval benchmarks describe the full pipeline. The free hosted service uses BM25, so those hybrid retrieval scores do not describe its search mode.
+- Feedback comes from historical [Spotify reviews](https://www.kaggle.com/datasets/mfaaris/spotify-app-reviews-2022) and [customer support conversations](https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter), plus explicitly labeled synthetic surveys. This is not a real-time ingestion service.
+- The recorded insight-groundedness result missed the original target. Regression floors in `eval/thresholds.json` are maintenance checks, not guarantees of answer quality.
+
+## Deployment
+
+### Backend: Render Free
+
+1. Create a Render Blueprint from this repository and its root `render.yaml`.
+2. Supply `GROQ_API_KEY` as an environment secret when prompted. Keep the service on the **Free** plan.
+3. The blueprint selects the lightweight requirements, disables embedding-model preloading, uses DuckDB views and BM25, and sets `/api/ready` as the health check.
+4. Confirm readiness and verify a cited analyst response before connecting a frontend. Record the assigned `https://<service>.onrender.com` URL.
+
+The existing deployment is available at [the backend readiness endpoint](https://echolens-api-0ok3.onrender.com/api/ready). Free instances sleep after inactivity and use ephemeral runtime storage.
+
+### Frontend: GitHub Pages
+
+1. Enable GitHub Pages with **GitHub Actions** as the publishing source.
+2. Set the repository **variable** `NEXT_PUBLIC_API_URL` to the backend base URL, without an `/api` suffix. This URL is public; no Groq key belongs in this variable.
+3. Run [Deploy dashboard to GitHub Pages](https://github.com/simran-kalkeri/echolens/actions/workflows/deploy-pages.yml), or push a frontend change to `main`.
+
+The workflow builds a static export with `GITHUB_PAGES=true` and publishes `web/out/`. The base path in `web/next.config.ts` is `/echolens`; update it when deploying under a different repository name. Changes to the API URL variable require a new frontend build.
+
+## Contributing
+
+1. Open an issue to discuss substantial changes or report a reproducible problem.
+2. Fork the repository and create a focused feature or fix branch.
+3. Update relevant documentation and tests when behavior changes; run the applicable checks above.
+4. Submit a pull request against `main` describing the change, validation, and any trade-offs.
+
+Keep credentials, raw datasets, model checkpoints, dependency folders, and generated build output out of commits. Review licensing status below before reusing or redistributing project code.
+
+## Roadmap
+
+- [ ] Persist quotas across restarts and add optional authentication or bot protection.
+- [ ] Improve claim grounding and expand human-labeled evaluation.
+- [ ] Support the full hybrid/reranked profile in a higher-memory deployment.
+- [ ] Add ingestion connectors and a documented data-refresh workflow.
+- [ ] Add dashboard screenshots and versioned releases.
+- [ ] Select and add a project license.
+
+## License
+
+A project license has not yet been specified; this repository currently has no `LICENSE` file. Dataset, model, and dependency licenses are documented by their respective publishers.
+
+## Contact and Author
+
+**Simran Kalkeri** — [GitHub profile](https://github.com/simran-kalkeri)
+
+For bugs, questions, or feature requests, [open an issue](https://github.com/simran-kalkeri/echolens/issues).
