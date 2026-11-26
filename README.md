@@ -5,6 +5,14 @@ aspect-level sentiment, intent and urgency for every item, a discovered two-leve
 
 > Built as a portfolio project for the Enterpret ML internship. Every model has a baseline and a regression threshold; see [docs/EVALUATION.md](docs/EVALUATION.md).
 
+## Live demo
+
+[Open EchoLens on GitHub Pages](https://simran-kalkeri.github.io/enterpret/).
+
+The hosted dashboard uses the built-in sample data and a simulated AI analyst. GitHub Pages serves the static frontend; the Python API, live LLM calls, and ML pipeline run separately using the setup below.
+
+Changes to `web/` on `main` automatically rebuild and publish through `.github/workflows/deploy-pages.yml`. To build the Pages export locally, run `GITHUB_PAGES=true npm run build` from `web/` with `NEXT_PUBLIC_API_URL` unset; the site is written to `web/out/`.
+
 ## Results at a glance
 
 **Scale:** 2.81M raw tweets + 61.6k reviews + 225 surveys → **287,854** feedback items → **208,593** after cleaning, PII redaction and dedup → **291 themes** across 6 workspaces, **164 alerts**. The student model enriched the whole corpus at **521 items/s on a Kaggle T4**, and only **1.7 %** of items ever needed an LLM call.

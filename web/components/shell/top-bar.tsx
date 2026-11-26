@@ -75,7 +75,7 @@ function WorkspaceSwitcher() {
 }
 
 export function TopBar({ menuButton }: { menuButton: React.ReactNode }) {
-  const pathname = usePathname();
+  const pathname = usePathname().replace(/\/$/, "") || "/";
   const range = useApp((s) => s.range);
   const setRange = useApp((s) => s.setRange);
   const title = TITLES[pathname] ?? "";
