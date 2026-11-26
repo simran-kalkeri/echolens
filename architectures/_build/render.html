@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Rendering diagrams…</title>
+<body style="font: 14px system-ui; padding: 16px">
+<pre id="log">loading @excalidraw/excalidraw…</pre>
+<script type="module">
+  const log = (m) => (document.getElementById("log").textContent += "\n" + m);
+  window.EXCALIDRAW_ASSET_PATH = "https://esm.sh/@excalidraw/excalidraw@0.18.0/dist/prod/";
+  const { exportToSvg, exportToBlob } = await import(
+    "https://esm.sh/@excalidraw/excalidraw@0.18.0?deps=react@19.1.0,react-dom@19.1.0"
+  );
+  const names = await (await fetch("/list")).json();
+  for (const n of names) {
+    const scene = await (await fetch(`/${n}.excalidraw`)).json();
+    const appState = { ...scene.appState, exportBackground: true, exportWithDarkMode: false };
+    const svg = await exportToSvg({ elements: scene.elements, appState, files: {}, exportPadding: 40 });
+    await fetch(`/exports/${n}.svg`, { method: "PUT", body: svg.outerHTML });
+    const png = await exportToBlob({
+      elements: scene.elements, appState: { ...appState, exportScale: 2 }, files: {}, mimeType: "image/png", exportPadding: 40,
+    });
+    await fetch(`/exports/${n}.png`, { method: "PUT", body: png });
+    log(`✓ ${n}`);
+  }
+  document.title = "done";
+  log("done");
+</script>

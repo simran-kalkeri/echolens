@@ -1,0 +1,7 @@
+amazon: 39 themes, NPMI=0.154
+apple: 58 themes, NPMI=0.082
+delta: 45 themes, NPMI=0.083
+spotify: 41 themes, NPMI=0.139
+uber: 45 themes, NPMI=0.130
+xbox: 63 themes, NPMI=0.076
+[taxonomy] success in 340.43s rows 208593->291

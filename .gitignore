@@ -1,0 +1,77 @@
+# Python environments and caches
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+
+# Credentials and local environment settings
+.env
+.env.*
+!.env.example
+!.env.*.example
+env.ps1
+env.sh
+*.pem
+*.key
+*.p12
+*.pfx
+kaggle.json
+.aws/
+.ssh/
+
+# Downloaded inputs and rebuildable pipeline/model outputs
+/data/raw/
+/data/lake/bronze/
+/data/lake/silver/
+/data/kaggle_out/
+/data/kaggle_upload/
+/data/kaggle_kernel/
+*.safetensors
+*.ckpt
+*.crc
+_SUCCESS
+*.zip
+
+# Gold/theme tables, indexes, serving JSON, labels, LLM responses, and
+# data/runs logs intentionally ship so a clone can serve the dashboard.
+
+# JavaScript dependencies and generated frontend files
+node_modules/
+.next/
+.next-build/
+.turbo/
+.pnp
+.pnp.*
+out/
+build/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Local tooling and operating-system files
+.cache/
+.claude/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~

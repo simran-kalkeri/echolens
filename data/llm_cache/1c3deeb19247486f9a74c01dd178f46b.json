@@ -1,0 +1,1 @@
+{"role": "assistant", "tool_calls": [{"id": "fc_5026eee3-b08e-49f6-8f60-8116ae906880", "type": "function", "function": {"name": "theme_stats", "arguments": "{\"aspect\":null,\"limit\":10,\"sort_by\":\"growth\"}"}}], "_model": "openai/gpt-oss-120b"}

@@ -1,0 +1,276 @@
+{
+  "ingest": {
+    "id": "ingest",
+    "name": "Ingestion & Validation",
+    "engine": "spark",
+    "description": "Unify reviews + support tickets into one schema; validate types, timestamps, ranges and IDs.",
+    "status": "success",
+    "rows_in": 287854,
+    "rows_out": 287854,
+    "duration_s": 878.47,
+    "metrics": {
+      "twcs_raw_tweets": 2811774,
+      "twcs_conversations": 733498,
+      "rejected": 0,
+      "by_source": {
+        "ticket": 226035,
+        "review": 61594,
+        "survey": 225
+      }
+    },
+    "checks": [
+      {
+        "name": "text_not_empty",
+        "passed": true,
+        "value": "0 failed"
+      },
+      {
+        "name": "timestamp_parsed",
+        "passed": true,
+        "value": "0 failed"
+      },
+      {
+        "name": "rating_in_range",
+        "passed": true,
+        "value": "0 failed"
+      },
+      {
+        "name": "unique_feedback_id",
+        "passed": true,
+        "value": "0 duplicate ids removed"
+      },
+      {
+        "name": "schema_matches_contract",
+        "passed": true,
+        "value": "feedback_id,workspace,source,text,rating,created_at,author_hash,thumbs_up"
+      }
+    ],
+    "started_at": "2026-11-24T16:40:36.390140+00:00",
+    "finished_at": "2026-11-24T16:55:14.857035+00:00"
+  },
+  "clean_dedup": {
+    "id": "clean_dedup",
+    "name": "Cleaning & Deduplication",
+    "engine": "spark",
+    "description": "Strip handles/URLs, redact PII, drop non-English and trivial items, exact + MinHash-LSH near-dup removal.",
+    "status": "success",
+    "rows_in": 287854,
+    "rows_out": 208593,
+    "duration_s": 551.14,
+    "metrics": {
+      "dropped_non_english_or_short": 8015,
+      "pii_redactions": 2697,
+      "exact_duplicates": 1662,
+      "near_duplicates": 496,
+      "lsh": "MinHash 12 hashes, 3 bands x 4 rows, Jaccard >= 0.8 verified",
+      "by_workspace": {
+        "delta": 24128,
+        "amazon": 44998,
+        "xbox": 10569,
+        "spotify": 45047,
+        "uber": 38847,
+        "apple": 45004
+      },
+      "dedup_rate_pct": 0.77,
+      "label_sample": 3600
+    },
+    "checks": [
+      {
+        "name": "no_empty_text",
+        "passed": true,
+        "value": "0 empty"
+      },
+      {
+        "name": "every_workspace_present",
+        "passed": true,
+        "value": "6 workspaces"
+      },
+      {
+        "name": "no_raw_emails_left",
+        "passed": true,
+        "value": "PII redacted"
+      }
+    ],
+    "started_at": "2026-11-24T16:55:21.553678+00:00",
+    "finished_at": "2026-11-24T17:04:32.691223+00:00"
+  },
+  "taxonomy": {
+    "id": "taxonomy",
+    "name": "Theme Naming (Taxonomy)",
+    "engine": "groq",
+    "description": "c-TF-IDF keywords + representative items -> LLM-named themes under aspect categories.",
+    "status": "success",
+    "rows_in": 208593,
+    "rows_out": 291,
+    "duration_s": 340.43,
+    "metrics": {
+      "themes": 291,
+      "mean_npmi": 0.1109
+    },
+    "checks": [
+      {
+        "name": "all_themes_named",
+        "passed": true,
+        "value": "100% named by LLM"
+      }
+    ],
+    "started_at": "2026-11-24T18:54:06.914910+00:00",
+    "finished_at": "2026-11-24T18:59:47.349788+00:00"
+  },
+  "analytics": {
+    "id": "analytics",
+    "name": "Analytics & Trend Detection",
+    "engine": "spark",
+    "description": "Daily sentiment/theme aggregates, aspect sentiment, Poisson z-score anomaly detection, knowledge-graph edges.",
+    "status": "success",
+    "rows_in": 208593,
+    "rows_out": 207552,
+    "duration_s": 400.84,
+    "metrics": {
+      "trimmed_sparse_tail": 1041,
+      "alerts": 164,
+      "graph_edges": 4588,
+      "theme_days_scored": 22933
+    },
+    "checks": [
+      {
+        "name": "all_feedback_has_date",
+        "passed": true,
+        "value": "dates parsed"
+      },
+      {
+        "name": "theme_coverage",
+        "passed": true,
+        "value": "93.2% assigned to a theme"
+      }
+    ],
+    "started_at": "2026-11-24T19:02:17.864459+00:00",
+    "finished_at": "2026-11-24T19:08:58.701765+00:00"
+  },
+  "insights": {
+    "id": "insights",
+    "name": "LLM Insight Generation",
+    "engine": "groq",
+    "description": "Theme/alert summaries (gpt-oss-20b) and insight cards (gpt-oss-120b) with [#id] citations; every claim verified by a gpt-oss-120b judge.",
+    "status": "success",
+    "rows_in": null,
+    "rows_out": 96,
+    "duration_s": 521.99,
+    "metrics": {
+      "mean_groundedness": 0.6856,
+      "llm_calls": 76,
+      "llm_tokens": 77923
+    },
+    "checks": [
+      {
+        "name": "summaries_grounded",
+        "passed": false,
+        "value": "68.6% claims supported"
+      }
+    ],
+    "started_at": "2026-11-24T19:39:29.548129+00:00",
+    "finished_at": "2026-11-24T19:48:11.542826+00:00"
+  },
+  "nlp": {
+    "status": "success",
+    "rows_in": 208593,
+    "rows_out": 208593,
+    "id": "nlp",
+    "name": "NLP Intelligence Pipeline",
+    "engine": "kaggle-gpu",
+    "description": "Teacher (Groq LLM) labels distilled into a multi-task ModernBERT-base student; bulk inference on Tesla T4.",
+    "duration_s": 581.4,
+    "metrics": {
+      "train_examples": 2987,
+      "throughput_items_per_s": 520.9,
+      "gpu": "Tesla T4"
+    },
+    "checks": [
+      {
+        "name": "sentiment_macro_f1_beats_baseline",
+        "passed": true,
+        "value": "0.817 vs 0.696"
+      },
+      {
+        "name": "intent_macro_f1_beats_baseline",
+        "passed": true,
+        "value": "0.624 vs 0.582"
+      },
+      {
+        "name": "urgency_macro_f1_beats_baseline",
+        "passed": true,
+        "value": "0.497 vs 0.439"
+      }
+    ]
+  },
+  "absa": {
+    "status": "success",
+    "rows_in": 208593,
+    "rows_out": 208593,
+    "id": "absa",
+    "name": "Aspect Sentiment & Urgency",
+    "engine": "kaggle-gpu",
+    "description": "14 aspect categories x {none,neg,neu,pos} head + urgency head; validated on SemEval-2014 ACSA.",
+    "duration_s": 85.4,
+    "metrics": {
+      "aspect_detection_f1": 0.592,
+      "aspect_joint_f1": 0.5578,
+      "urgency_macro_f1": 0.4967,
+      "semeval_detection_f1": 0.8488
+    },
+    "checks": [
+      {
+        "name": "semeval_category_f1>=0.8",
+        "passed": true,
+        "value": "0.849"
+      }
+    ]
+  },
+  "embed_cluster": {
+    "status": "success",
+    "rows_in": 208593,
+    "rows_out": 208593,
+    "id": "embed_cluster",
+    "name": "Embeddings & Topic Clustering",
+    "engine": "kaggle-gpu",
+    "description": "bge-small-en-v1.5 embeddings -> UMAP(5d) -> HDBSCAN per workspace; UMAP(3d) for the galaxy view.",
+    "duration_s": 681.0,
+    "metrics": {
+      "clusters": 291,
+      "mean_silhouette": 0.281,
+      "mean_noise": 0.0683
+    },
+    "checks": [
+      {
+        "name": "amazon_noise_share_below_10pct",
+        "passed": true,
+        "value": "6.6% unassigned, 39 themes, silhouette 0.315 (KMeans same k 0.437)"
+      },
+      {
+        "name": "apple_noise_share_below_10pct",
+        "passed": true,
+        "value": "4.7% unassigned, 58 themes, silhouette 0.359 (KMeans same k 0.484)"
+      },
+      {
+        "name": "delta_noise_share_below_10pct",
+        "passed": true,
+        "value": "9.1% unassigned, 45 themes, silhouette 0.181 (KMeans same k 0.341)"
+      },
+      {
+        "name": "spotify_noise_share_below_10pct",
+        "passed": true,
+        "value": "5.4% unassigned, 41 themes, silhouette 0.256 (KMeans same k 0.404)"
+      },
+      {
+        "name": "uber_noise_share_below_10pct",
+        "passed": true,
+        "value": "6.7% unassigned, 45 themes, silhouette 0.221 (KMeans same k 0.394)"
+      },
+      {
+        "name": "xbox_noise_share_below_10pct",
+        "passed": true,
+        "value": "8.5% unassigned, 63 themes, silhouette 0.354 (KMeans same k 0.495)"
+      }
+    ]
+  }
+}

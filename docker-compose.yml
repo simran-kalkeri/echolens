@@ -1,0 +1,17 @@
+# Serving stack. Build the data first with `python -m pipeline.cli all` (Spark jobs run in the echolens-spark image).
+services:
+  api:
+    build: { context: ., dockerfile: infra/api.Dockerfile }
+    env_file: .env
+    ports: ["8000:8000"]
+  web:
+    build:
+      context: .
+      dockerfile: infra/web.Dockerfile
+      args: { NEXT_PUBLIC_API_URL: "http://localhost:8000" }
+    ports: ["3000:3000"]
+    depends_on: [api]
+  spark:   # batch image used by pipeline/cli.py (not a long-running service)
+    build: { context: infra, dockerfile: spark.Dockerfile }
+    image: echolens-spark
+    profiles: ["batch"]

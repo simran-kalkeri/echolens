@@ -1,0 +1,10 @@
+.venv
+web/node_modules
+web/.next
+web/.next-build
+data/raw
+data/kaggle_upload
+data/kaggle_kernel
+data/lake/bronze
+data/lake/silver
+**/__pycache__

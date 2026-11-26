@@ -1,0 +1,75 @@
+0 already labelled, 600 to go with openai/gpt-oss-120b
+  25/600 labelled=25 7s
+  rate limited/server error 429; sleeping 20s
+  rate limited/server error 429; sleeping 20s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 13s
+  rate limited/server error 429; sleeping 15s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 1s
+  rate limited/server error 429; sleeping 20s
+  275/600 labelled=275 195s
+  rate limited/server error 429; sleeping 21s
+  rate limited/server error 429; sleeping 20s
+  rate limited/server error 429; sleeping 12s
+  rate limited/server error 429; sleeping 1s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 13s
+  rate limited/server error 429; sleeping 1s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 20s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 18s
+  rate limited/server error 429; sleeping 15s
+  525/600 labelled=525 418s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 1s
+  rate limited/server error 429; sleeping 15s
+  rate limited/server error 429; sleeping 18s
+done: 599 new labels in 480s
+0 already labelled, 900 to go with openai/gpt-oss-120b
+  rate limited/server error 429; sleeping 14s
+  25/900 labelled=25 20s
+  rate limited/server error 429; sleeping 16s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 18s
+  rate limited/server error 429; sleeping 13s
+  rate limited/server error 429; sleeping 20s
+  rate limited/server error 429; sleeping 1s
+  rate limited/server error 429; sleeping 18s
+  rate limited/server error 429; sleeping 12s
+  rate limited/server error 429; sleeping 18s
+  rate limited/server error 429; sleeping 15s
+  rate limited/server error 429; sleeping 14s
+  275/900 labelled=274 244s
+  rate limited/server error 429; sleeping 11s
+  rate limited/server error 429; sleeping 22s
+  rate limited/server error 429; sleeping 18s
+  rate limited/server error 429; sleeping 16s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 18s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 12s
+  525/900 labelled=524 448s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 16s
+  rate limited/server error 429; sleeping 13s
+  rate limited/server error 429; sleeping 17s
+  rate limited/server error 429; sleeping 21s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 13s
+  rate limited/server error 429; sleeping 1s
+  rate limited/server error 429; sleeping 19s
+  rate limited/server error 429; sleeping 14s
+  rate limited/server error 429; sleeping 13s
+  775/900 labelled=773 664s
+  rate limited/server error 429; sleeping 12s
+  rate limited/server error 429; sleeping 1s
+  rate limited/server error 429; sleeping 15s
+  rate limited/server error 429; sleeping 15s
+  rate limited/server error 429; sleeping 16s
+  rate limited/server error 429; sleeping 12s
+done: 898 new labels in 762s

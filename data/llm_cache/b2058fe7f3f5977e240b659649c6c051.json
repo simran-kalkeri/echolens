@@ -1,0 +1,1 @@
+{"role": "assistant", "tool_calls": [{"id": "fc_0266954b-3117-4716-b8c3-24624df195ef", "type": "function", "function": {"name": "search_feedback", "arguments": "{\"k\":5,\"query\":\"offline download problem\",\"sentiment\":\"negative\"}"}}], "_model": "openai/gpt-oss-120b"}

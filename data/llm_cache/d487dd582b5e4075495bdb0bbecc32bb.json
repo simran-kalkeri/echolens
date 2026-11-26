@@ -1,0 +1,1 @@
+{"role": "assistant", "tool_calls": [{"id": "nz2vqep19", "type": "function", "function": {"name": "theme_stats", "arguments": "{\"limit\":10,\"sort_by\":\"neg_share\"}"}}, {"id": "cqmey1pk7", "type": "function", "function": {"name": "list_alerts", "arguments": "{}"}}], "_model": "qwen/qwen3.8-27b"}

@@ -1,0 +1,1 @@
+{"role": "assistant", "tool_calls": [{"id": "fc_de17e924-b3ce-4180-9de0-f16146c0b122", "type": "function", "function": {"name": "theme_trend", "arguments": "{\"theme_id\":\"spotify-t6\"}"}}], "_model": "openai/gpt-oss-120b"}

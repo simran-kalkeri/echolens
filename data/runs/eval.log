@@ -1,0 +1,12 @@
+[llm] daily cap reached for openai/gpt-oss-20b; falling back
+classification done
+[llm] daily cap reached for openai/gpt-oss-120b; falling back
+bm25 {'method': 'bm25', 'recall_at_10': 0.3533, 'ndcg_at_10': 0.3156, 'mrr': 0.2145} 61 ms/query
+dense {'method': 'dense', 'recall_at_10': 0.4667, 'ndcg_at_10': 0.4529, 'mrr': 0.3264} 18 ms/query
+hybrid {'method': 'hybrid', 'recall_at_10': 0.4467, 'ndcg_at_10': 0.4159, 'mrr': 0.3136} 14 ms/query
+hybrid_rerank {'method': 'hybrid_rerank', 'recall_at_10': 0.4933, 'ndcg_at_10': 0.4284, 'mrr': 0.3348} 1347 ms/query
+retrieval done
+[llm] daily cap reached for qwen/qwen3.8-27b; falling back
+grounding stopped: all Groq models hit their daily token cap
+grounding done
+eval written

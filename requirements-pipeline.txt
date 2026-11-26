@@ -1,0 +1,7 @@
+-r requirements-api.txt
+kaggle>=1.7
+six
+scikit-learn>=1.5
+networkx>=3.3
+scipy>=1.13
+pytest>=8

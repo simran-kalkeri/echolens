@@ -1,0 +1,1 @@
+{"role": "assistant", "tool_calls": [{"id": "fc_5f57d8bc-ba2f-4d0c-a230-816592d29c49", "type": "function", "function": {"name": "theme_stats", "arguments": "{\"aspect\":null,\"limit\":10,\"sort_by\":\"neg_share\"}"}}]}

@@ -1,0 +1,1 @@
+{"role": "assistant", "tool_calls": [{"id": "fc_a9520be9-b12b-47da-9aa3-d57231936357", "type": "function", "function": {"name": "theme_evidence", "arguments": "{\"k\":5,\"theme_id\":\"spotify-t1\"}"}}]}

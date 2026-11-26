@@ -1,0 +1,234 @@
+{
+  "n_injected": 30,
+  "n_clean_themes": 30,
+  "recall_by_magnitude": {
+    "1.5": 0.1,
+    "2": 0.8333333333333334,
+    "3": 1.0,
+    "5": 1.0
+  },
+  "baseline_recall_by_magnitude": {
+    "1.5": 0.0,
+    "2": 0.8333333333333334,
+    "3": 1.0,
+    "5": 1.0
+  },
+  "recall": 0.6666666666666666,
+  "mean_delay_days": 0.55,
+  "false_alert_rate_per_theme_day": 0.0011111111111111111,
+  "baseline_recall": 0.6333333333333333,
+  "baseline_mean_delay_days": 0.42105263157894735,
+  "baseline_false_alert_rate": 0.0011111111111111111,
+  "incidents": [
+    {
+      "name": "x2 for 5d (base 121.76/day)",
+      "mult": 2,
+      "injected_at": "2022-03-12",
+      "detected_at": "2022-03-12",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 5d (base 60.87/day)",
+      "mult": 5,
+      "injected_at": "2022-03-29",
+      "detected_at": "2022-03-29",
+      "delay_days": 0
+    },
+    {
+      "name": "x1.5 for 5d (base 37.48/day)",
+      "mult": 1.5,
+      "injected_at": "2022-02-18",
+      "detected_at": "2022-02-21",
+      "delay_days": 3
+    },
+    {
+      "name": "x2 for 3d (base 36.75/day)",
+      "mult": 2,
+      "injected_at": "2022-04-11",
+      "detected_at": "2022-04-11",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 5d (base 32.37/day)",
+      "mult": 5,
+      "injected_at": "2022-03-06",
+      "detected_at": "2022-03-06",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 5d (base 29.0/day)",
+      "mult": 5,
+      "injected_at": "2022-04-20",
+      "detected_at": "2022-04-20",
+      "delay_days": 0
+    },
+    {
+      "name": "x2 for 5d (base 24.07/day)",
+      "mult": 2,
+      "injected_at": "2022-04-01",
+      "detected_at": "2022-04-05",
+      "delay_days": 4
+    },
+    {
+      "name": "x2 for 5d (base 23.24/day)",
+      "mult": 2,
+      "injected_at": "2022-03-11",
+      "detected_at": "2022-03-13",
+      "delay_days": 2
+    },
+    {
+      "name": "x1.5 for 3d (base 22.46/day)",
+      "mult": 1.5,
+      "injected_at": "2022-04-17",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x1.5 for 2d (base 22.17/day)",
+      "mult": 1.5,
+      "injected_at": "2022-02-18",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x3 for 2d (base 20.68/day)",
+      "mult": 3,
+      "injected_at": "2022-03-20",
+      "detected_at": "2022-03-20",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 5d (base 20.02/day)",
+      "mult": 5,
+      "injected_at": "2022-04-11",
+      "detected_at": "2022-04-11",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 3d (base 19.23/day)",
+      "mult": 5,
+      "injected_at": "2022-04-05",
+      "detected_at": "2022-04-05",
+      "delay_days": 0
+    },
+    {
+      "name": "x1.5 for 3d (base 18.5/day)",
+      "mult": 1.5,
+      "injected_at": "2022-02-27",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x5 for 2d (base 18.05/day)",
+      "mult": 5,
+      "injected_at": "2022-02-14",
+      "detected_at": "2022-02-14",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 3d (base 16.92/day)",
+      "mult": 5,
+      "injected_at": "2022-03-09",
+      "detected_at": "2022-03-09",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 3d (base 16.2/day)",
+      "mult": 5,
+      "injected_at": "2022-03-20",
+      "detected_at": "2022-03-20",
+      "delay_days": 0
+    },
+    {
+      "name": "x5 for 5d (base 15.02/day)",
+      "mult": 5,
+      "injected_at": "2022-03-26",
+      "detected_at": "2022-03-26",
+      "delay_days": 0
+    },
+    {
+      "name": "x1.5 for 3d (base 14.77/day)",
+      "mult": 1.5,
+      "injected_at": "2022-03-11",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x2 for 5d (base 14.32/day)",
+      "mult": 2,
+      "injected_at": "2022-03-17",
+      "detected_at": "2022-03-19",
+      "delay_days": 2
+    },
+    {
+      "name": "x1.5 for 5d (base 13.98/day)",
+      "mult": 1.5,
+      "injected_at": "2022-03-23",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x3 for 5d (base 13.08/day)",
+      "mult": 3,
+      "injected_at": "2022-03-09",
+      "detected_at": "2022-03-09",
+      "delay_days": 0
+    },
+    {
+      "name": "x1.5 for 2d (base 12.88/day)",
+      "mult": 1.5,
+      "injected_at": "2022-03-18",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x5 for 5d (base 12.46/day)",
+      "mult": 5,
+      "injected_at": "2022-04-12",
+      "detected_at": "2022-04-12",
+      "delay_days": 0
+    },
+    {
+      "name": "x1.5 for 3d (base 12.22/day)",
+      "mult": 1.5,
+      "injected_at": "2022-02-21",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x1.5 for 2d (base 12.15/day)",
+      "mult": 1.5,
+      "injected_at": "2022-04-03",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x5 for 3d (base 11.88/day)",
+      "mult": 5,
+      "injected_at": "2022-03-19",
+      "detected_at": "2022-03-19",
+      "delay_days": 0
+    },
+    {
+      "name": "x1.5 for 2d (base 11.58/day)",
+      "mult": 1.5,
+      "injected_at": "2022-02-25",
+      "detected_at": null,
+      "delay_days": null
+    },
+    {
+      "name": "x3 for 5d (base 10.98/day)",
+      "mult": 3,
+      "injected_at": "2022-03-30",
+      "detected_at": "2022-03-30",
+      "delay_days": 0
+    },
+    {
+      "name": "x2 for 3d (base 10.61/day)",
+      "mult": 2,
+      "injected_at": "2022-04-21",
+      "detected_at": null,
+      "delay_days": null
+    }
+  ]
+}

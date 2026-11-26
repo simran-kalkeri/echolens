@@ -1,0 +1,9 @@
+[llm] daily cap reached for openai/gpt-oss-120b; falling back
+xbox: LLM serving done
+uber: LLM serving done
+apple: LLM serving done
+[llm] daily cap reached for openai/gpt-oss-20b; falling back
+amazon: LLM serving done
+delta: LLM serving done
+spotify: LLM serving done
+[insights] success in 521.99s rows None->96

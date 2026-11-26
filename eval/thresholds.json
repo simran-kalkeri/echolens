@@ -1,0 +1,15 @@
+{
+  "_policy": "Regression floors, pinned at the first full run (2026-11-25) minus a small tolerance. They catch regressions; they are not quality claims. Original pre-registered targets that were NOT met are listed in README 'Results' (groundedness 0.80, retrieval Recall@10 0.50, incident recall 0.70, aspect detection F1 0.60, silhouette 0.30).",
+  "sentiment_macro_f1": {"min": 0.78},
+  "intent_macro_f1": {"min": 0.59},
+  "urgency_macro_f1": {"min": 0.47},
+  "aspect_detection_f1": {"min": 0.56},
+  "semeval_detection_f1": {"min": 0.82},
+  "silhouette": {"min": 0.25},
+  "npmi": {"min": 0.08},
+  "retrieval_recall_at_10": {"min": 0.45},
+  "incident_recall": {"min": 0.6},
+  "false_alert_rate": {"max": 0.01},
+  "groundedness": {"min": 0.65},
+  "citation_rate": {"min": 0.9}
+}
