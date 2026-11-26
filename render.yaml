@@ -1,0 +1,38 @@
+services:
+  - type: web
+    name: echolens-api
+    runtime: docker
+    plan: free
+    region: singapore
+    repo: https://github.com/simran-kalkeri/echolens
+    branch: main
+    dockerfilePath: ./infra/api.Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/ready
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: API_REQUIREMENTS
+        value: requirements-api-base.txt
+      - key: PRELOAD_MODELS
+        value: "false"
+      - key: RETRIEVAL_METHOD
+        value: bm25
+      - key: RETRIEVAL_CACHE_SIZE
+        value: "1"
+      - key: ECHOLENS_LOW_MEMORY
+        value: "true"
+      - key: DUCKDB_MEMORY_LIMIT
+        value: 96MB
+      - key: DUCKDB_THREADS
+        value: "1"
+      - key: ALLOWED_ORIGINS
+        value: https://simran-kalkeri.github.io
+      - key: ANALYST_PER_IP_LIMIT
+        value: "3"
+      - key: ANALYST_DAILY_LIMIT
+        value: "20"
+      - key: ANALYST_TIMEOUT_SECONDS
+        value: "90"
+      - key: ANALYST_MAX_CALLS
+        value: "6"

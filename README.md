@@ -9,7 +9,7 @@ aspect-level sentiment, intent and urgency for every item, a discovered two-leve
 
 [Open EchoLens on GitHub Pages](https://simran-kalkeri.github.io/echolens/).
 
-The hosted dashboard uses the built-in sample data and a simulated AI analyst. GitHub Pages serves the static frontend; the Python API, live LLM calls, and ML pipeline run separately using the setup below.
+GitHub Pages hosts the frontend. Set the repository variable `NEXT_PUBLIC_API_URL` to the deployed API URL to use the processed dataset and live Groq analyst; leaving it unset enables the built-in sample data and simulated analyst.
 
 Changes to `web/` on `main` automatically rebuild and publish through `.github/workflows/deploy-pages.yml`. To build the Pages export locally, run `GITHUB_PAGES=true npm run build` from `web/` with `NEXT_PUBLIC_API_URL` unset; the site is written to `web/out/`.
 
@@ -106,6 +106,16 @@ Each brand is a **workspace** (like a customer tenant in Enterpret).
 | Analyst | Streaming tool-using agent; claim-level support check and groundedness score |
 | Explorer | Hybrid semantic search + filters over every item |
 | Evaluation | All metrics vs baselines and thresholds |
+
+## Backend hosting
+
+`render.yaml` deploys a Docker web service on Render's **free** plan. Set `GROQ_API_KEY` as a Render secret; it belongs only on the server and in the ignored local `.env`, never in Git or the frontend build. After the service passes `/api/ready`, set the GitHub repository variable `NEXT_PUBLIC_API_URL` to its HTTPS URL and run the Pages workflow.
+
+The free profile serves the complete processed dataset through DuckDB views, keeps a single workspace search index, and uses **BM25 keyword retrieval**. It omits local embedding and reranking models to fit 512 MB. The full hybrid/reranked path remains available in the default Docker image and local setup. Render's free service sleeps after inactivity, so the first request can take longer.
+
+The public analyst allows 3 questions per client per 15 minutes, 20 questions across all clients per day, and one active question at a time. Questions are limited to 800 characters and 4 KB request bodies; each answer has a 90-second request budget and at most 6 upstream LLM attempts, including retries, fallbacks, and claim verification. Other websites are excluded by CORS. These quotas live in the running instance and reset on redeployment; Groq account limits remain the final account-wide spending boundary.
+
+`Backend checks` runs the real-data API tests, guardrail tests, and a Docker smoke test capped at 512 MB before the hosted service is connected to the frontend.
 
 ## Run it
 

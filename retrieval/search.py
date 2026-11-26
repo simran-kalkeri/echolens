@@ -8,6 +8,7 @@ rerank : cross-encoder ms-marco-MiniLM-L-6-v2 over the fused top-N
 from __future__ import annotations
 
 import os
+import threading
 from functools import lru_cache
 from pathlib import Path
 
@@ -20,6 +21,19 @@ KOUT = ROOT / "data" / "kaggle_out"
 INDEX = ROOT / "data" / "index"
 GOLD_FB = ROOT / "data" / "lake" / "gold" / "feedback"
 METHODS = ("bm25", "dense", "hybrid", "hybrid_rerank")
+_text_index_lock = threading.Lock()
+
+
+@lru_cache(maxsize=max(1, int(os.getenv("RETRIEVAL_CACHE_SIZE", "1"))))
+def _text_index(ws):
+    """BM25-only deployment path: no embedding shards or ONNX models in memory."""
+    import bm25s
+    from api.store import q as query
+    frame = query("SELECT feedback_id, text FROM feedback WHERE workspace=?", ws)
+    ids, texts = frame.feedback_id.to_numpy(), frame.text.tolist()
+    retriever = bm25s.BM25()
+    retriever.index(bm25s.tokenize(texts, stopwords="en", show_progress=False), show_progress=False)
+    return ids, texts, retriever
 
 
 @lru_cache(maxsize=1)
@@ -89,8 +103,20 @@ def _bm25(ws, q, k):
     return list(res[0])
 
 
-def search(ws: str, q: str, k: int = 20, method: str = "hybrid_rerank", pool: int = 60) -> list[tuple[str, float]]:
+def search(ws: str, q: str, k: int = 20, method: str | None = None, pool: int = 60) -> list[tuple[str, float]]:
     """Returns [(feedback_id, score)] best first."""
+    method = method or os.getenv("RETRIEVAL_METHOD", "hybrid_rerank")
+    if method not in METHODS:
+        raise ValueError("Unknown retrieval method")
+    if method == "bm25":
+        import bm25s
+        with _text_index_lock:
+            ids, texts, retriever = _text_index(ws)
+            if not len(ids):
+                return []
+            results, _ = retriever.retrieve(bm25s.tokenize([q], stopwords="en", show_progress=False),
+                                             k=min(k, len(ids)), show_progress=False)
+            return [(str(ids[i]), 1.0 / (rank + 1)) for rank, i in enumerate(results[0])]
     ids, _, texts, _ = _ws_index(ws)
     if method == "dense":
         return [(ids[i], 1.0 / (r + 1)) for r, i in enumerate(_dense(ws, q, k))]

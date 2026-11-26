@@ -148,7 +148,9 @@ export async function* askAnalyst(ws: string, question: string, signal?: AbortSi
     signal,
   });
   if (!res.ok || !res.body) {
-    yield { type: "error", text: `Analyst request failed (${res.status})` };
+    const error = await res.json().catch(() => null);
+    const detail = typeof error?.detail === "string" ? error.detail : `Analyst request failed (${res.status})`;
+    yield { type: "error", text: detail };
     return;
   }
   const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();

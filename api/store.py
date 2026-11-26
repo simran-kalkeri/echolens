@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from functools import lru_cache
 from pathlib import Path
 
@@ -24,14 +25,22 @@ WS_NAMES = {"spotify": "Spotify", "apple": "Apple", "amazon": "Amazon", "uber": 
 
 @lru_cache(maxsize=1)
 def con() -> duckdb.DuckDBPyConnection:
-    c = duckdb.connect()
+    settings = {}
+    if os.getenv("DUCKDB_MEMORY_LIMIT"):
+        settings["memory_limit"] = os.environ["DUCKDB_MEMORY_LIMIT"]
+    if os.getenv("DUCKDB_THREADS"):
+        settings["threads"] = int(os.environ["DUCKDB_THREADS"])
+    c = duckdb.connect(config=settings)
+    low_memory = os.getenv("ECHOLENS_LOW_MEMORY") == "true"
+    kind = "VIEW" if low_memory else "TABLE"
     p = lambda t: str(GOLD / t).replace("\\", "/")
-    c.execute(f"CREATE TABLE feedback AS SELECT * FROM read_parquet('{p('feedback')}/*/*.parquet', hive_partitioning=1)")
-    c.execute("CREATE INDEX idx_fb ON feedback(feedback_id)")
+    c.execute(f"CREATE {kind} feedback AS SELECT * FROM read_parquet('{p('feedback')}/*/*.parquet', hive_partitioning=1)")
+    if not low_memory:
+        c.execute("CREATE INDEX idx_fb ON feedback(feedback_id)")
     for t in ["daily_sentiment", "daily_theme", "aspect_sentiment", "theme_stats", "theme_series", "alerts", "graph_edges"]:
-        c.execute(f"CREATE TABLE {t} AS SELECT * FROM read_parquet('{p(t)}/*.parquet')")
+        c.execute(f"CREATE {kind} {t} AS SELECT * FROM read_parquet('{p(t)}/*.parquet')")
     themes = str(ROOT / "data" / "lake" / "themes" / "themes.parquet").replace("\\", "/")
-    c.execute(f"CREATE TABLE themes AS SELECT * FROM read_parquet('{themes}')")
+    c.execute(f"CREATE {kind} themes AS SELECT * FROM read_parquet('{themes}')")
     return c
 
 

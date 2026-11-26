@@ -71,7 +71,7 @@ function ExplorerInner() {
     <PageContainer>
       <PageHeader
         title="Feedback explorer"
-        description="Every piece of feedback with its predicted sentiment, intent, urgency and aspects. Search is semantic: it matches meaning, not just keywords."
+        description="Every piece of feedback with its predicted sentiment, intent, urgency and aspects. Search the feedback text, then narrow the results with filters."
       />
       <Card className="mb-3 p-3">
         <div className="relative">

@@ -3,17 +3,32 @@ from __future__ import annotations
 
 import json
 import math
+import logging
+import os
+import time
+from typing import Literal
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+from dotenv import load_dotenv
+from starlette.concurrency import iterate_in_threadpool
+from api.limits import AnalystBodyLimit, AnalystLimits
 
-from api.store import ASPECT_LABELS, FB_COLS, WS_NAMES, feedback_by_ids, q, serving, to_feedback
+from api.store import ROOT, ASPECT_LABELS, FB_COLS, WS_NAMES, feedback_by_ids, q, serving, to_feedback
 
 app = FastAPI(title="EchoLens API", version="1.0", description="Customer-feedback intelligence: themes, trends, alerts, grounded AI analyst.")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+load_dotenv(ROOT / ".env")
+app.add_middleware(AnalystBodyLimit)
+app.add_middleware(CORSMiddleware,
+    allow_origins=[s.strip() for s in os.getenv("ALLOWED_ORIGINS", "https://simran-kalkeri.github.io,http://localhost:3000,http://127.0.0.1:3000").split(",") if s.strip()],
+    allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
+analyst_limits = AnalystLimits(per_ip=int(os.getenv("ANALYST_PER_IP_LIMIT", "3")),
+    daily=int(os.getenv("ANALYST_DAILY_LIMIT", "20")))
+Workspace = Literal["spotify", "apple", "amazon", "uber", "delta", "xbox"]
+logger = logging.getLogger(__name__)
 
 
 def _d(x) -> str:
@@ -29,6 +44,16 @@ def health():
     return {"ok": True}
 
 
+@app.get("/api/ready")
+def ready():
+    total = int(q("SELECT count(*) n FROM feedback").n[0])
+    if not total:
+        raise HTTPException(503, "The processed dataset is not available.")
+    return {"ok": True, "feedback_count": total,
+            "analyst_configured": bool(os.getenv("GROQ_API_KEY")),
+            "search_method": os.getenv("RETRIEVAL_METHOD", "hybrid_rerank")}
+
+
 @app.get("/api/workspaces")
 def workspaces():
     df = q("SELECT workspace, list(DISTINCT source) AS sources, count(*) n, min(created_at) d0, max(created_at) d1 FROM feedback GROUP BY 1 ORDER BY n DESC")
@@ -39,7 +64,7 @@ def workspaces():
 
 
 @app.get("/api/overview")
-def overview(ws: str):
+def overview(ws: Workspace):
     k = q("""SELECT count(*) total, avg((sentiment='negative')::int)*100 neg, avg((sentiment='positive')::int)*100 pos,
              avg(rating) avg_rating, sum((urgency='critical')::int) crit FROM feedback WHERE workspace=?""", ws).iloc[0]
     if k.total == 0:
@@ -68,12 +93,12 @@ def overview(ws: str):
     }
 
 
-def _themes_df(ws: str) -> pd.DataFrame:
+def _themes_df(ws: Workspace) -> pd.DataFrame:
     return q("""SELECT t.theme_id, t.theme_name, t.description, t.aspect, t.keywords, ts.count, ts.neg_share, ts.sentiment_score
                 FROM themes t JOIN theme_stats ts USING(workspace, theme_id) WHERE t.workspace=? ORDER BY ts.count DESC""", ws)
 
 
-def _trends(ws: str) -> dict:
+def _trends(ws: Workspace) -> dict:
     df = q("SELECT theme_id, date, count FROM daily_theme WHERE workspace=? ORDER BY date", ws)
     return {tid: [{"date": _d(d), "count": int(c)} for d, c in zip(g.date, g["count"])] for tid, g in df.groupby("theme_id")}
 
@@ -85,7 +110,7 @@ def _theme(r, trends) -> dict:
 
 
 @app.get("/api/themes")
-def themes(ws: str):
+def themes(ws: Workspace):
     t = _themes_df(ws)
     trends = _trends(ws)
     asp = q("SELECT * FROM aspect_sentiment WHERE workspace=?", ws).set_index("aspect")
@@ -99,7 +124,7 @@ def themes(ws: str):
 
 
 @app.get("/api/themes/{theme_id}")
-def theme_detail(theme_id: str, ws: str):
+def theme_detail(theme_id: str, ws: Workspace):
     t = _themes_df(ws)
     t = t[t.theme_id == theme_id]
     if t.empty:
@@ -119,7 +144,7 @@ def theme_detail(theme_id: str, ws: str):
 
 
 @app.get("/api/graph")
-def graph(ws: str):
+def graph(ws: Workspace):
     g = serving(f"graph_{ws}")
     if g is None:
         raise HTTPException(404, "graph not built")
@@ -127,7 +152,7 @@ def graph(ws: str):
 
 
 @app.get("/api/galaxy")
-def galaxy(ws: str):
+def galaxy(ws: Workspace):
     g = serving(f"galaxy_{ws}")
     if g is None:
         raise HTTPException(404, "galaxy not built")
@@ -135,7 +160,7 @@ def galaxy(ws: str):
 
 
 @app.get("/api/alerts")
-def alerts(ws: str):
+def alerts(ws: Workspace):
     a = q("""SELECT a.*, t.theme_name FROM alerts a JOIN themes t USING(workspace, theme_id) WHERE a.workspace=?
              ORDER BY CASE severity WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END, score DESC LIMIT 40""", ws)
     summaries = serving("alert_summaries", {})
@@ -154,7 +179,7 @@ def alerts(ws: str):
 
 
 @app.get("/api/feedback")
-def feedback(ws: str, q_: str | None = Query(None, alias="q"), aspect: str | None = None, sentiment: str | None = None,
+def feedback(ws: Workspace, q_: str | None = Query(None, alias="q", max_length=300), aspect: str | None = None, sentiment: str | None = None,
              intent: str | None = None, urgency: str | None = None, source: str | None = None, theme: str | None = None,
              page: int = 1, page_size: int = 25):
     where, params = ["workspace=?"], [ws]
@@ -197,7 +222,7 @@ def evaluation():
 
 
 @app.get("/api/insights")
-def insights(ws: str):
+def insights(ws: Workspace):
     ins = serving("insights", {}).get(ws, [])
     for i in ins:
         i["citations"] = feedback_by_ids(i.get("citation_ids", []))
@@ -205,19 +230,42 @@ def insights(ws: str):
 
 
 class AskBody(BaseModel):
-    ws: str
-    question: str
+    ws: Workspace
+    question: str = Field(min_length=1, max_length=800)
+
+    @field_validator("question")
+    @classmethod
+    def nonempty_question(cls, value):
+        value = value.strip()
+        if not value:
+            raise ValueError("Please enter a question.")
+        return value
 
 
 @app.post("/api/analyst/ask")
-def ask(body: AskBody):
+def ask(body: AskBody, request: Request):
+    if not os.getenv("GROQ_API_KEY"):
+        raise HTTPException(503, "The live analyst has not been configured yet.")
     from analyst.agent import run_agent
+    from analyst.llm import CallBudget
 
-    def gen():
+    client = request.client.host if request.client else "unknown"
+    # Render's edge supplies this header. The global daily cap applies regardless
+    # of identity, so changing or spoofing an IP cannot bypass that boundary.
+    if os.getenv("RENDER") == "true":
+        client = request.headers.get("cf-connecting-ip") or request.headers.get("true-client-ip") or client
+    release = analyst_limits.admit(client)
+    budget = CallBudget(deadline=time.monotonic() + int(os.getenv("ANALYST_TIMEOUT_SECONDS", "90")),
+                        remaining_calls=int(os.getenv("ANALYST_MAX_CALLS", "6")))
+
+    async def gen():
         try:
-            for ev in run_agent(body.ws, body.question):
+            async for ev in iterate_in_threadpool(run_agent(body.ws, body.question, max_rounds=3, budget=budget)):
                 yield f"data: {json.dumps(ev, default=str)}\n\n"
-        except Exception as e:  # surface errors to the UI instead of dropping the stream
-            yield f"data: {json.dumps({'type': 'error', 'text': str(e)})}\n\n"
+        except Exception:
+            logger.exception("Live analyst request failed")
+            yield 'data: {"type":"error","text":"The analyst could not complete this request. Please try again later."}\n\n'
+        finally:
+            release()
 
     return StreamingResponse(gen(), media_type="text/event-stream", headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

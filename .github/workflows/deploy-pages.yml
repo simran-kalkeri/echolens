@@ -23,7 +23,7 @@ jobs:
         working-directory: web
     env:
       GITHUB_PAGES: "true"
-      NEXT_PUBLIC_API_URL: ""
+      NEXT_PUBLIC_API_URL: ${{ vars.NEXT_PUBLIC_API_URL }}
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - name: Check out source

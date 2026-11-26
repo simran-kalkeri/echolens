@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+import os
 from typing import Iterator
 
 from analyst.llm import FAST_MODEL, MODEL, chat, chat_json
@@ -29,7 +30,7 @@ def normalize_citations(text: str, valid) -> str:
 TOOLS = [
     {"type": "function", "function": {
         "name": "search_feedback",
-        "description": "Hybrid semantic search over this workspace's customer feedback. Returns the most relevant items with ids to cite.",
+        "description": "Search this workspace's customer feedback using the configured retrieval method. Returns the most relevant items with ids to cite.",
         "parameters": {"type": "object", "properties": {
             "query": {"type": "string", "description": "natural-language search query"},
             "sentiment": {"type": ["string", "null"], "enum": ["positive", "neutral", "negative", None], "description": "optional filter"},
@@ -146,7 +147,7 @@ def claim_units(answer: str) -> list[str]:
     return out
 
 
-def verify_claims(answer: str, evidence: dict[str, str], stats_blob: str) -> list[dict]:
+def verify_claims(answer: str, evidence: dict[str, str], stats_blob: str, budget=None) -> list[dict]:
     sentences = claim_units(answer)
     claims = []
     for s in sentences:
@@ -155,7 +156,7 @@ def verify_claims(answer: str, evidence: dict[str, str], stats_blob: str) -> lis
     payload = [{"i": i, "claim": c["text"], "cited": [evidence.get(x, "<missing>")[:300] for x in c["citation_ids"]]}
                for i, c in enumerate(claims)]
     if payload:
-        res = chat_json(VERIFY, json.dumps({"stats": stats_blob[:3000], "claims": payload}, ensure_ascii=False), model=MODEL, max_tokens=500)
+        res = chat_json(VERIFY, json.dumps({"stats": stats_blob[:3000], "claims": payload}, ensure_ascii=False), model=MODEL, max_tokens=500, budget=budget)
         ok = {int(r["i"]): bool(r.get("supported")) for r in res.get("claims", []) if "i" in r}
         for i in ok:
             if 0 <= i < len(claims):
@@ -163,7 +164,7 @@ def verify_claims(answer: str, evidence: dict[str, str], stats_blob: str) -> lis
     return claims
 
 
-def run_agent(ws: str, question: str, max_rounds: int = 5) -> Iterator[dict]:
+def run_agent(ws: str, question: str, max_rounds: int = 5, budget=None) -> Iterator[dict]:
     meta = q("SELECT min(created_at)::DATE d0, max(created_at)::DATE d1, count(*) n, string_agg(DISTINCT source, ', ') s FROM feedback WHERE workspace=?", ws).iloc[0]
     if not meta.n:
         yield {"type": "error", "text": f"unknown workspace {ws}"}
@@ -175,8 +176,10 @@ def run_agent(ws: str, question: str, max_rounds: int = 5) -> Iterator[dict]:
     yield {"type": "status", "text": "Planning analysis"}
     answer = None
     for rnd in range(max_rounds):
-        msg = chat(messages, tools=TOOLS, max_tokens=900, temperature=0.1)
+        msg = chat(messages, tools=TOOLS, max_tokens=900, temperature=0.1, budget=budget)
         calls = msg.get("tool_calls") or []
+        if budget:
+            calls = calls[:2]
         if not calls:
             answer = msg.get("content") or ""
             if not evidence and rnd == 0:   # force at least one retrieval
@@ -202,10 +205,10 @@ def run_agent(ws: str, question: str, max_rounds: int = 5) -> Iterator[dict]:
                 if name != "search_feedback" and name != "theme_evidence":
                     stats.append({name: result})
             yield {"type": "tool", "name": name, "args": args, "summary": _summary(name, result)}
-            messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(result, default=str)[:6000]})
+            messages.append({"role": "tool", "tool_call_id": c["id"], "content": json.dumps(result, default=str)[:3500 if budget else 6000]})
     if answer is None:
         messages.append({"role": "user", "content": "Now write the final answer with [#id] citations."})
-        answer = chat(messages, max_tokens=900).get("content") or ""
+        answer = chat(messages, max_tokens=900, budget=budget).get("content") or ""
 
     answer = re.sub(r"【[^】]*】", "", answer)          # drop non-standard citation markers
     # Strip citations to ids the tools never returned (hallucinated ids).
@@ -213,7 +216,7 @@ def run_agent(ws: str, question: str, max_rounds: int = 5) -> Iterator[dict]:
     for chunk in re.findall(r"\S+\s*", answer):
         yield {"type": "token", "text": chunk}
     yield {"type": "status", "text": "Verifying claims against cited evidence"}
-    claims = verify_claims(answer, evidence, json.dumps(stats, default=str))
+    claims = verify_claims(answer, evidence, json.dumps(stats, default=str), budget=budget)
     cited = list(dict.fromkeys(CITE_RE.findall(answer)))
     g = sum(c["supported"] for c in claims) / len(claims) if claims else 0.0
     yield {"type": "final", "answer": answer, "citations": feedback_by_ids(cited), "claims": claims, "groundedness": round(g, 3)}
