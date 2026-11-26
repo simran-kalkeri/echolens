@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
   ...(isGitHubPages
     ? {
         output: "export",
-        basePath: "/enterpret",
+        basePath: "/echolens",
         trailingSlash: true,
         images: { unoptimized: true },
       }

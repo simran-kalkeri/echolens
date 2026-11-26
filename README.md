@@ -7,7 +7,7 @@ aspect-level sentiment, intent and urgency for every item, a discovered two-leve
 
 ## Live demo
 
-[Open EchoLens on GitHub Pages](https://simran-kalkeri.github.io/enterpret/).
+[Open EchoLens on GitHub Pages](https://simran-kalkeri.github.io/echolens/).
 
 The hosted dashboard uses the built-in sample data and a simulated AI analyst. GitHub Pages serves the static frontend; the Python API, live LLM calls, and ML pipeline run separately using the setup below.
 
